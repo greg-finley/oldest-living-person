@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import psycopg2
+import pytz
 import requests
 import tweepy
 from bs4 import BeautifulSoup
@@ -121,7 +122,11 @@ def send_email_on_exception(message):
 
 
 def birthdate_str_to_epoch(wikipedia_birthdate_string):
-    epoch = int(datetime.strptime(wikipedia_birthdate_string, "%d %B %Y").timestamp())
+    epoch = int(
+        pytz.utc.localize(
+            datetime.strptime(wikipedia_birthdate_string, "%d %B %Y")
+        ).timestamp()
+    )
     print("Oldest person birthdate epoch", epoch)
     return epoch
 
