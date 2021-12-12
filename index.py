@@ -12,7 +12,15 @@ load_dotenv()
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+conn.autocommit = True
 
+cur = conn.cursor()
+
+cur.execute(
+    "CREATE TABLE IF NOT EXISTS test (id serial PRIMARY KEY, num integer, data varchar);"
+)
+
+cur.close()
 conn.close()
 
 # Scrape the table
