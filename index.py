@@ -18,17 +18,21 @@ def main():
     oldest_person_birthdate_epoch = birthdate_str_to_epoch(
         oldest_person_dict["Birth date"]
     )
-    print(oldest_person_birthdate_epoch)
 
     conn = get_database_connection()
+
     known_birthdates = find_birthdates_from_database(conn)
 
+    # Maybe other info in the table might change, but the birthdates hopefully are stable, especially for the oldest person.
+    # If the oldest person's birthdate is not in our list of known birthdates, we'll tweet.
     if oldest_person_birthdate_epoch not in known_birthdates:
         tweet_message = generate_tweet_message(oldest_person_dict)
         send_tweet(tweet_message)
         add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
     else:
-        print(f"{oldest_person_dict['Name']} is still the oldest person")
+        print(
+            f"{clean_person_name(oldest_person_dict['Name'])} is still the oldest person"
+        )
 
     conn.close()
 
@@ -36,7 +40,6 @@ def main():
 def scrape_wikipedia_oldest_living_people_table():
     wikiurl = "https://en.wikipedia.org/wiki/List_of_the_oldest_living_people"
     response = requests.get(wikiurl)
-    print(response.status_code)
 
     soup = BeautifulSoup(response.text, "html.parser")
     return soup.find("table", {"class": "wikitable"})
@@ -62,20 +65,24 @@ def find_birthdates_from_database(conn):
             "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch int);"
         )
         curs.execute("SELECT birth_date_epoch FROM known_birthdates;")
-    rows = curs.fetchall()
-    return [row[0] for row in rows]
+        rows = curs.fetchall()
+    known_birthdates = [row[0] for row in rows]
+    print("Known birthdate epochs", known_birthdates)
+    return known_birthdates
 
 
 def generate_tweet_message(oldest_person_dict):
-    clean_name = re.sub("[\(\[].*?[\)\]]", "", oldest_person_dict["Name"])
-    return f"{clean_name} was born on {oldest_person_dict['Birth date']}"
+    return (
+        f"{clean_person_name(oldest_person_dict['Name'])} of {oldest_person_dict['Country of residence']}, born {oldest_person_dict['Birth date']}, "
+        "is now the world's oldest living person, according to Wikipedia: https://en.wikipedia.org/wiki/List_of_the_oldest_living_people"
+    )
 
 
 def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
     with conn.cursor() as curs:
         curs.execute(
             "INSERT INTO known_birthdates (birth_date_epoch) VALUES (%s)",
-            (oldest_person_birthdate_epoch),
+            (oldest_person_birthdate_epoch,),
         )
 
 
@@ -91,6 +98,11 @@ def send_tweet(message):
     client.create_tweet(text=message)
 
     print(f"Tweeted {message}")
+
+
+def clean_person_name(name):
+    # Remove the annotations: Kane Tanaka[3] -> Kane Tanaka
+    return re.sub("[\(\[].*?[\)\]]", "", name)
 
 
 def send_email_on_exception(message):
@@ -109,13 +121,15 @@ def send_email_on_exception(message):
 
 
 def birthdate_str_to_epoch(wikipedia_birthdate_string):
-    return int(datetime.strptime(wikipedia_birthdate_string, "%d %B %Y").timestamp())
+    epoch = int(datetime.strptime(wikipedia_birthdate_string, "%d %B %Y").timestamp())
+    print("Oldest person birthdate epoch", epoch)
+    return epoch
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(e)
         if os.environ.get("EMAIL_TO"):
             send_email_on_exception(e)
+        raise e
