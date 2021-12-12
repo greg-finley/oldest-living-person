@@ -9,6 +9,7 @@ import requests
 import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ def main():
     # If the oldest person's birthdate is not in our list of known birthdates, we'll tweet.
     if oldest_person_birthdate_epoch not in known_birthdates:
         tweet_message = generate_tweet_message(oldest_person_dict)
-        send_tweet(tweet_message)
+        send_tweet_and_email(tweet_message)
         add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
     else:
         print(
@@ -87,7 +88,7 @@ def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
         )
 
 
-def send_tweet(message):
+def send_tweet_and_email(message):
     client = tweepy.Client(
         bearer_token=os.environ["TWITTER_BEARER_TOKEN"],
         consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
@@ -96,9 +97,13 @@ def send_tweet(message):
         access_token_secret=os.environ["TWITTER_ACCESS_SECRET"],
     )
 
-    client.create_tweet(text=message)
-
-    print(f"Tweeted {message}")
+    try:
+        client.create_tweet(text=message)
+        print(f"Tweeted {message}")
+    except TweetForbidden:
+        print("Tweet forbidden")
+    send_email("New oldest living person", "New oldest living person")
+    print(f"Emailed {message}")
 
 
 def clean_person_name(name):
@@ -106,8 +111,7 @@ def clean_person_name(name):
     return re.sub("[\(\[].*?[\)\]]", "", name)
 
 
-def send_email_on_exception(message):
-    print("Sending email about exception")
+def send_email(subject, message):
     mailgun_domain = os.environ["MAILGUN_DOMAIN"]
     return requests.post(
         f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
@@ -115,7 +119,7 @@ def send_email_on_exception(message):
         data={
             "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
             "to": [os.environ["EMAIL_TO"]],
-            "subject": "Oldest Living Person execution error",
+            "subject": subject,
             "text": message,
         },
     )
@@ -136,5 +140,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         if os.environ.get("EMAIL_TO"):
-            send_email_on_exception(e)
+            send_email("Oldest Living Person execution error", e)
         raise e
