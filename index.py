@@ -29,7 +29,7 @@ def main():
     # If the oldest person's birthdate is not in our list of known birthdates, we'll tweet.
     if oldest_person_birthdate_epoch not in known_birthdates:
         tweet_message = generate_tweet_message(oldest_person_dict)
-        send_tweet(tweet_message)
+        send_tweet_and_email(tweet_message)
         add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
     else:
         print(
@@ -88,7 +88,7 @@ def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
         )
 
 
-def send_tweet(message):
+def send_tweet_and_email(message):
     client = tweepy.Client(
         bearer_token=os.environ["TWITTER_BEARER_TOKEN"],
         consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
@@ -101,8 +101,9 @@ def send_tweet(message):
         client.create_tweet(text=message)
         print(f"Tweeted {message}")
     except TweetForbidden:
-        send_email("New oldest living person", "New oldest living person")
-        print(f"Emailed {message}")
+        print("Tweet forbidden")
+    send_email("New oldest living person", "New oldest living person")
+    print(f"Emailed {message}")
 
 
 def clean_person_name(name):
