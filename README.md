@@ -12,6 +12,8 @@ Reference used on basic web scraper: https://medium.com/analytics-vidhya/web-scr
 
 Install [poetry](https://python-poetry.org/docs/#installation)
 
+`cp .env.example .env` and fill in the parameters
+
 `poetry install` from repo root. I used Python 3.9.
 
 `poetry run python index.py`

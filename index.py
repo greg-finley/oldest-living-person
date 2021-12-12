@@ -1,8 +1,19 @@
+import os
 import re
 
 import pandas as pd
+import psycopg2
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+
+conn.close()
 
 # Scrape the table
 wikiurl = "https://en.wikipedia.org/wiki/List_of_the_oldest_living_people"
