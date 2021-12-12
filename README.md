@@ -1,8 +1,8 @@
 # Oldest Living Person
 
-Watch [Wikipedia's list of oldest living people](https://en.wikipedia.org/wiki/List_of_the_oldest_living_people) in a periodic job.
+Watch [Wikipedia's list of oldest living people](https://en.wikipedia.org/wiki/List_of_the_oldest_living_people) in a periodic job. Tweet when there's a new oldest person.
 
-Tweet when there's a new oldest person.
+This topic has always fascinated me and been a reminder of our own mortality. For instance, as of a few years ago, we no longer had anyone alive who was born in the 19th century.
 
 The logic is keep a database of the seen top spots and tweet if the top spot has a *birth date* we have not yet seen (hedge against Wikipedia changing the *name* of the person in the top spot and triggering an errant tweet).
 
