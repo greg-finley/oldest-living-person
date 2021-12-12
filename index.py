@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 
 import pandas as pd
 import psycopg2
@@ -14,14 +15,18 @@ load_dotenv()
 def main():
     oldest_people_table = scrape_wikipedia_oldest_living_people_table()
     oldest_person_dict = table_to_oldest_person_dict(oldest_people_table)
+    oldest_person_birthdate_epoch = birthdate_str_to_epoch(
+        oldest_person_dict["Birth date"]
+    )
+    print(oldest_person_birthdate_epoch)
 
     conn = get_database_connection()
     known_birthdates = find_birthdates_from_database(conn)
 
-    if oldest_person_dict["Birth date"] not in known_birthdates:
+    if oldest_person_birthdate_epoch not in known_birthdates:
         tweet_message = generate_tweet_message(oldest_person_dict)
         send_tweet(tweet_message)
-        add_new_birthdate_to_database(conn, oldest_person_dict)
+        add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
     else:
         print(f"{oldest_person_dict['Name']} is still the oldest person")
 
@@ -54,8 +59,11 @@ def get_database_connection():
 def find_birthdates_from_database(conn):
     with conn.cursor() as curs:
         curs.execute(
-            "CREATE TABLE IF NOT EXISTS test (id serial PRIMARY KEY, num integer, data varchar);"
+            "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch int);"
         )
+        curs.execute("SELECT birth_date_epoch FROM known_birthdates;")
+    rows = curs.fetchall()
+    return [row[0] for row in rows]
 
 
 def generate_tweet_message(oldest_person_dict):
@@ -63,13 +71,12 @@ def generate_tweet_message(oldest_person_dict):
     return f"{clean_name} was born on {oldest_person_dict['Birth date']}"
 
 
-def add_new_birthdate_to_database(conn, oldest_person_dict):
+def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
     with conn.cursor() as curs:
         curs.execute(
-            "CREATE TABLE IF NOT EXISTS test (id serial PRIMARY KEY, num integer, data varchar);"
+            "INSERT INTO known_birthdates (birth_date_epoch) VALUES (%s)",
+            (oldest_person_birthdate_epoch),
         )
-
-    print(oldest_person_dict)
 
 
 def send_tweet(message):
@@ -99,6 +106,10 @@ def send_email_on_exception(message):
             "text": message,
         },
     )
+
+
+def birthdate_str_to_epoch(wikipedia_birthdate_string):
+    return int(datetime.strptime(wikipedia_birthdate_string, "%d %B %Y").timestamp())
 
 
 if __name__ == "__main__":
