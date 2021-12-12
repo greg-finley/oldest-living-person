@@ -9,6 +9,7 @@ import requests
 import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
 
@@ -96,9 +97,12 @@ def send_tweet(message):
         access_token_secret=os.environ["TWITTER_ACCESS_SECRET"],
     )
 
-    client.create_tweet(text=message)
-
-    print(f"Tweeted {message}")
+    try:
+        client.create_tweet(text=message)
+        print(f"Tweeted {message}")
+    except TweetForbidden:
+        send_email("New oldest living person", "New oldest living person")
+        print(f"Emailed {message}")
 
 
 def clean_person_name(name):
@@ -106,8 +110,7 @@ def clean_person_name(name):
     return re.sub("[\(\[].*?[\)\]]", "", name)
 
 
-def send_email_on_exception(message):
-    print("Sending email about exception")
+def send_email(subject, message):
     mailgun_domain = os.environ["MAILGUN_DOMAIN"]
     return requests.post(
         f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
@@ -115,7 +118,7 @@ def send_email_on_exception(message):
         data={
             "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
             "to": [os.environ["EMAIL_TO"]],
-            "subject": "Oldest Living Person execution error",
+            "subject": subject,
             "text": message,
         },
     )
@@ -136,5 +139,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         if os.environ.get("EMAIL_TO"):
-            send_email_on_exception(e)
+            send_email("Oldest Living Person execution error", e)
         raise e
