@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import psycopg2
 import requests
+import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -49,9 +50,22 @@ def main():
     # If so, tweet about it!
 
 
-def send_email(subject, message):
+def send_tweet(message):
+    client = tweepy.Client(
+        bearer_token=os.environ["TWITTER_BEARER_TOKEN"],
+        consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
+        consumer_secret=os.environ["TWITTER_CONSUMER_SECRET"],
+        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
+        access_token_secret=os.environ["TWITTER_ACCESS_SECRET"],
+    )
+
+    client.create_tweet(text=message)
+
+    print(f"Tweeted {message}")
+
+
+def send_email_on_exception(message):
     print("Sending email about exception")
-    print(message)
     mailgun_domain = os.environ["MAILGUN_DOMAIN"]
     return requests.post(
         f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
@@ -59,7 +73,7 @@ def send_email(subject, message):
         data={
             "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
             "to": [os.environ["EMAIL_TO"]],
-            "subject": subject,
+            "subject": "Oldest Living Person execution error",
             "text": message,
         },
     )
@@ -69,5 +83,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        print(e)
         if os.environ.get("EMAIL_TO"):
-            send_email("Oldest Living Person execution error", e)
+            send_email_on_exception(e)
