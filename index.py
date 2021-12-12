@@ -31,14 +31,18 @@ def main():
     print(response.status_code)
 
     soup = BeautifulSoup(response.text, "html.parser")
-    table = soup.find("table", {"class": "wikitable"})
+    oldest_people_table = soup.find("table", {"class": "wikitable"})
 
-    # Put it in a pandas dataframe
-    df = pd.read_html(str(table))
-    df = pd.DataFrame(df[0])
+    # Put it in a pandas dataframe and then the oldest person's info into a dict
+    oldest_people_df = pd.read_html(str(oldest_people_table))
+    oldest_person_dict = pd.DataFrame(oldest_people_df[0]).iloc[0].to_dict()
+
     # Remove the annotations: Kane Tanaka[3] -> Kane Tanaka
-    df["Name"] = df["Name"].apply(lambda x: re.sub("[\(\[].*?[\)\]]", "", x))
-    print(df.head())
+    oldest_person_dict["Name"] = re.sub(
+        "[\(\[].*?[\)\]]", "", oldest_person_dict["Name"]
+    )
+
+    print(oldest_person_dict)
 
     # Check if the top spot has a birthday we haven't seen in our database
 
