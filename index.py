@@ -103,7 +103,6 @@ def send_tweet_and_email(message):
     except TweetForbidden:
         print("Tweet forbidden")
     send_email("New oldest living person", "New oldest living person")
-    print(f"Emailed {message}")
 
 
 def clean_person_name(name):
@@ -112,17 +111,21 @@ def clean_person_name(name):
 
 
 def send_email(subject, message):
-    mailgun_domain = os.environ["MAILGUN_DOMAIN"]
-    return requests.post(
-        f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
-        auth=("api", os.environ["MAILGUN_API_KEY"]),
-        data={
-            "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
-            "to": [os.environ["EMAIL_TO"]],
-            "subject": subject,
-            "text": message,
-        },
-    )
+    if os.environ.get("EMAIL_TO"):
+        mailgun_domain = os.environ["MAILGUN_DOMAIN"]
+        requests.post(
+            f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
+            auth=("api", os.environ["MAILGUN_API_KEY"]),
+            data={
+                "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
+                "to": [os.environ["EMAIL_TO"]],
+                "subject": subject,
+                "text": message,
+            },
+        )
+        print(f"Emailed {message}")
+    else:
+        print(f"Did not email because no email env set: {message}")
 
 
 def birthdate_str_to_epoch(wikipedia_birthdate_string):
@@ -139,6 +142,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        if os.environ.get("EMAIL_TO"):
-            send_email("Oldest Living Person execution error", e)
+        send_email("Oldest Living Person execution error", e)
         raise e
