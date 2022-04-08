@@ -40,6 +40,8 @@ def main():
         if b.birth_date_epoch == oldest_person_birthdate_epoch:
             known_birthday_match = b
             break
+            
+    print(f"Known birthday match: {known_birthday_match}")
 
     # If we have not seen it before, add it
     if not known_birthday_match:
