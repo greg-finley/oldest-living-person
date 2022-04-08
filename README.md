@@ -10,7 +10,7 @@ Watch [Wikipedia's list of oldest living people](https://en.wikipedia.org/wiki/L
 
 This topic has always fascinated me and been a reminder of our own mortality. For instance, as of a few years ago, we no longer had anyone alive who was born in the 19th century.
 
-The logic is keep a database of the seen top spots and tweet if the top spot has a *birth date* we have not yet seen (hedge against Wikipedia changing the *name* of the person in the top spot and triggering an errant tweet).
+The logic is keep a database of the birthdays we have seen at the top spot of the oldest person list. We also record how many times we have seen each birthdate, and whether we have tweeted about it. The job runs on a cron. To ensure we don't tweet about temporary page vandalism, keep a count of how many times the cron has seen this birthday and tweet if it's been seen a sufficient number of times.
 
 [Here](https://medium.com/analytics-vidhya/web-scraping-a-wikipedia-table-into-a-dataframe-c52617e1f451) is a reference used on basic web scraper.
 
