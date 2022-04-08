@@ -64,7 +64,7 @@ def get_database_connection():
 def find_birthdates_from_database(conn):
     with conn.cursor() as curs:
         curs.execute(
-            "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch int);"
+            "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch bigint);"
         )
         curs.execute("SELECT birth_date_epoch FROM known_birthdates;")
         rows = curs.fetchall()
