@@ -28,7 +28,10 @@ def main():
     # Maybe other info in the table might change, but the birthdates hopefully are stable, especially for the oldest person.
     # If the oldest person's birthdate is not in our list of known birthdates, we'll tweet.
     if oldest_person_birthdate_epoch not in known_birthdates:
-        tweet_message = generate_tweet_message(oldest_person_dict)
+        oldest_person_page_link = link_to_oldest_person_page(oldest_people_table)
+        tweet_message = generate_tweet_message(
+            oldest_person_dict, oldest_person_page_link
+        )
         send_tweet_and_email(tweet_message)
         add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
     else:
@@ -45,6 +48,20 @@ def scrape_wikipedia_oldest_living_people_table():
 
     soup = BeautifulSoup(response.text, "html.parser")
     return soup.find("table", {"class": "wikitable"})
+
+
+def link_to_oldest_person_page(oldest_people_table):
+    for tr in oldest_people_table.findAll("tr"):
+        trs = tr.findAll("td")
+        for each in trs:
+            try:
+                snippet = each.find("a")["href"]
+                if snippet.startswith("/wiki/"):
+                    return f"https://en.wikipedia.org{snippet}"
+            except:
+                pass
+
+    raise Exception("Could not find link to oldest person page")
 
 
 def table_to_oldest_person_dict(oldest_people_table):
@@ -73,10 +90,10 @@ def find_birthdates_from_database(conn):
     return known_birthdates
 
 
-def generate_tweet_message(oldest_person_dict):
+def generate_tweet_message(oldest_person_dict, oldest_person_page_link):
     return (
         f"{clean_person_name(oldest_person_dict['Name'])} of {oldest_person_dict['Country of residence']}, born {oldest_person_dict['Birth date']}, "
-        "is now the world's oldest living person, according to Wikipedia: https://en.wikipedia.org/wiki/List_of_the_oldest_living_people"
+        f"is now the world's oldest living person, according to Wikipedia: {oldest_person_page_link}"
     )
 
 
