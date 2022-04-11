@@ -64,7 +64,6 @@ def main():
         print(
             f"Skipping {oldest_person_birthdate_epoch} because it's older than the youngest tweeted birthdate"
         )
-        return
 
     # If we already tweeted it, skip
     elif known_birthday_match.tweeted:
