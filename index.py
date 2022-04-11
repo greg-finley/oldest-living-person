@@ -14,6 +14,9 @@ from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
 
+EVERY_TEN_MINUTES = 60 / 10
+SIX_HOURS = 6
+
 
 @dataclass
 class KnownBirthdate:
@@ -32,7 +35,9 @@ def main():
     conn = get_database_connection()
 
     known_birthdates = find_birthdates_from_database(conn)
-    times_seen_threshold = int(os.environ.get("TIMES_SEEN_THRESHOLD", 18))
+    times_seen_threshold = int(
+        os.environ.get("TIMES_SEEN_THRESHOLD", EVERY_TEN_MINUTES * SIX_HOURS)
+    )
 
     known_birthday_match = None
 
