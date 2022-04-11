@@ -40,12 +40,26 @@ def main():
         if b.birth_date_epoch == oldest_person_birthdate_epoch:
             known_birthday_match = b
             break
-            
+
     print(f"Known birthday match: {known_birthday_match}")
+
+    youngest_tweeted_birthdate = -2114294400
+    for b in known_birthdates:
+        if b.tweeted:
+            youngest_tweeted_birthdate = max(
+                youngest_tweeted_birthdate, b.birth_date_epoch
+            )
 
     # If we have not seen it before, add it
     if not known_birthday_match:
         add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
+
+    # If it's older than the youngest tweeted birthdate, it's probably vandalism
+    elif oldest_person_birthdate_epoch < youngest_tweeted_birthdate:
+        print(
+            f"Skipping {oldest_person_birthdate_epoch} because it's older than the youngest tweeted birthdate"
+        )
+        return
 
     # If we already tweeted it, skip
     elif known_birthday_match.tweeted:
