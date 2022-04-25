@@ -96,17 +96,15 @@ def scrape_wikipedia_oldest_living_people_table():
 
 
 def link_to_oldest_person_page(oldest_people_table):
-    for tr in oldest_people_table.findAll("tr"):
-        trs = tr.findAll("td")
-        for each in trs:
-            try:
-                snippet = each.find("a")["href"]
-                if snippet.startswith("/wiki/"):
-                    return f"https://en.wikipedia.org{snippet}"
-            except:
-                pass
-
-    raise Exception("Could not find link to oldest person page")
+    try:
+        url_snippet = (
+            oldest_people_table.findAll("tr")[1].findAll("td")[1].find("a")["href"]
+        )
+        if url_snippet.startswith("/wiki/") and not url_snippet.endswith("Prefecture"):
+            return f"https://en.wikipedia.org{url_snippet}"
+        raise
+    except:  # noqa E722
+        return "https://en.wikipedia.org/wiki/List_of_the_oldest_living_people"
 
 
 def table_to_oldest_person_dict(oldest_people_table):
