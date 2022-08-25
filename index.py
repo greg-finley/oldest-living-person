@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import pandas as pd
-import psycopg2
 import pytz
 import requests
 import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from google.cloud import bigquery
 from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
@@ -25,6 +25,9 @@ class KnownBirthdate:
     tweeted: bool
 
 
+bigquery_client = bigquery.Client()
+
+
 def main():
     oldest_people_table = scrape_wikipedia_oldest_living_people_table()
     oldest_person_dict = table_to_oldest_person_dict(oldest_people_table)
@@ -32,9 +35,7 @@ def main():
         oldest_person_dict["Birth date"]
     )
 
-    conn = get_database_connection()
-
-    known_birthdates = find_birthdates_from_database(conn)
+    known_birthdates = find_birthdates_from_database()
     times_seen_threshold = int(
         os.environ.get("TIMES_SEEN_THRESHOLD", EVERY_TEN_MINUTES * SIX_HOURS)
     )
@@ -57,7 +58,7 @@ def main():
 
     # If we have not seen it before, add it
     if not known_birthday_match:
-        add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch)
+        add_new_birthdate_to_database(oldest_person_birthdate_epoch)
 
     # If it's older than the youngest tweeted birthdate, it's probably vandalism
     elif oldest_person_birthdate_epoch < youngest_tweeted_birthdate:
@@ -73,7 +74,7 @@ def main():
 
     # If we have only seen a few times, increment the counter
     elif known_birthday_match.times_seen < times_seen_threshold:
-        increment_birthdate_times_seen(conn, known_birthday_match)
+        increment_birthdate_times_seen(known_birthday_match)
 
     # If we have seen it a lot, tweet it
     else:
@@ -82,9 +83,7 @@ def main():
             oldest_person_dict, oldest_person_page_link
         )
         send_tweet_and_email(tweet_message)
-        mark_birthdate_as_tweeted(conn, oldest_person_birthdate_epoch)
-
-    conn.close()
+        mark_birthdate_as_tweeted(oldest_person_birthdate_epoch)
 
 
 def scrape_wikipedia_oldest_living_people_table():
@@ -112,24 +111,13 @@ def table_to_oldest_person_dict(oldest_people_table):
     return pd.DataFrame(oldest_people_df[0]).iloc[0].to_dict()
 
 
-def get_database_connection():
-    DATABASE_URL = os.environ["DATABASE_URL"]
-
-    conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-    conn.autocommit = True
-
-    return conn
-
-
-def find_birthdates_from_database(conn):
-    with conn.cursor() as curs:
-        curs.execute(
-            "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch bigint, times_seen int, tweeted bool);"
-        )
-        curs.execute(
-            "SELECT birth_date_epoch, times_seen, tweeted FROM known_birthdates;"
-        )
-        rows = curs.fetchall()
+def find_birthdates_from_database():
+    bigquery_client.query(
+        "CREATE TABLE IF NOT EXISTS oldest_living_person.known_birthdates (birth_date_epoch bigint, times_seen int, tweeted bool);"
+    )
+    rows = bigquery_client.query(
+        "SELECT birth_date_epoch, times_seen, tweeted FROM oldest_living_person.known_birthdates;"
+    )
     results = []
     for row in rows:
         results.append(KnownBirthdate(*row))
@@ -144,30 +132,27 @@ def generate_tweet_message(oldest_person_dict, oldest_person_page_link):
     )
 
 
-def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
+def add_new_birthdate_to_database(oldest_person_birthdate_epoch):
     print(f"Adding new birthdate to database: {oldest_person_birthdate_epoch}")
-    with conn.cursor() as curs:
-        curs.execute(
-            "INSERT INTO known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES (%s, 1, false);",
-            (oldest_person_birthdate_epoch,),
-        )
+    bigquery_client.query(
+        "INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES (%s, 1, false);",
+        (oldest_person_birthdate_epoch,),
+    )
 
 
-def increment_birthdate_times_seen(conn, known_birthday_match):
+def increment_birthdate_times_seen(known_birthday_match):
     print(f"Incrementing times seen for {known_birthday_match.birth_date_epoch}")
-    with conn.cursor() as curs:
-        curs.execute(
-            "UPDATE known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = %s;",
-            (known_birthday_match.birth_date_epoch,),
-        )
+    bigquery_client.query(
+        "UPDATE oldest_living_person.known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = %s;",
+        (known_birthday_match.birth_date_epoch,),
+    )
 
 
-def mark_birthdate_as_tweeted(conn, oldest_person_birthdate_epoch):
-    with conn.cursor() as curs:
-        curs.execute(
-            "UPDATE known_birthdates SET tweeted = true WHERE birth_date_epoch = %s;",
-            (oldest_person_birthdate_epoch,),
-        )
+def mark_birthdate_as_tweeted(oldest_person_birthdate_epoch):
+    bigquery_client.query(
+        "UPDATE known_birthdates SET tweeted = true WHERE birth_date_epoch = %s;",
+        (oldest_person_birthdate_epoch,),
+    )
 
 
 def send_tweet_and_email(message):
