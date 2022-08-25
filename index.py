@@ -124,10 +124,10 @@ def get_database_connection():
 def find_birthdates_from_database(conn):
     with conn.cursor() as curs:
         curs.execute(
-            "CREATE TABLE IF NOT EXISTS known_birthdates (id serial PRIMARY KEY, birth_date_epoch bigint, times_seen int, tweeted bool);"
+            "CREATE TABLE IF NOT EXISTS oldest_living_person.known_birthdates (birth_date_epoch bigint, times_seen int, tweeted bool);"
         )
         curs.execute(
-            "SELECT birth_date_epoch, times_seen, tweeted FROM known_birthdates;"
+            "SELECT birth_date_epoch, times_seen, tweeted FROM oldest_living_person.known_birthdates;"
         )
         rows = curs.fetchall()
     results = []
@@ -148,7 +148,7 @@ def add_new_birthdate_to_database(conn, oldest_person_birthdate_epoch):
     print(f"Adding new birthdate to database: {oldest_person_birthdate_epoch}")
     with conn.cursor() as curs:
         curs.execute(
-            "INSERT INTO known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES (%s, 1, false);",
+            "INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES (%s, 1, false);",
             (oldest_person_birthdate_epoch,),
         )
 
@@ -157,7 +157,7 @@ def increment_birthdate_times_seen(conn, known_birthday_match):
     print(f"Incrementing times seen for {known_birthday_match.birth_date_epoch}")
     with conn.cursor() as curs:
         curs.execute(
-            "UPDATE known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = %s;",
+            "UPDATE oldest_living_person.known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = %s;",
             (known_birthday_match.birth_date_epoch,),
         )
 
