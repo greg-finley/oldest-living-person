@@ -28,7 +28,7 @@ class KnownBirthdate:
 bigquery_client = bigquery.Client()
 
 
-def main():
+def main(event, context):
     oldest_people_table = scrape_wikipedia_oldest_living_people_table()
     oldest_person_dict = table_to_oldest_person_dict(oldest_people_table)
     oldest_person_birthdate_epoch = birthdate_str_to_epoch(
@@ -82,8 +82,12 @@ def main():
         tweet_message = generate_tweet_message(
             oldest_person_dict, oldest_person_page_link
         )
-        send_tweet_and_email(tweet_message)
+        send_tweet(tweet_message)
         mark_birthdate_as_tweeted(oldest_person_birthdate_epoch)
+        # To alert me via email
+        raise Exception("New oldest person")
+
+    return {"status": "OK"}
 
 
 def scrape_wikipedia_oldest_living_people_table():
@@ -135,27 +139,24 @@ def generate_tweet_message(oldest_person_dict, oldest_person_page_link):
 def add_new_birthdate_to_database(oldest_person_birthdate_epoch):
     print(f"Adding new birthdate to database: {oldest_person_birthdate_epoch}")
     bigquery_client.query(
-        "INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES (%s, 1, false);",
-        (oldest_person_birthdate_epoch,),
+        f"INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES ({oldest_person_birthdate_epoch}, 1, false);"
     )
 
 
 def increment_birthdate_times_seen(known_birthday_match):
     print(f"Incrementing times seen for {known_birthday_match.birth_date_epoch}")
     bigquery_client.query(
-        "UPDATE oldest_living_person.known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = %s;",
-        (known_birthday_match.birth_date_epoch,),
+        f"UPDATE oldest_living_person.known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = {known_birthday_match.birth_date_epoch};"
     )
 
 
 def mark_birthdate_as_tweeted(oldest_person_birthdate_epoch):
     bigquery_client.query(
-        "UPDATE known_birthdates SET tweeted = true WHERE birth_date_epoch = %s;",
-        (oldest_person_birthdate_epoch,),
+        f"UPDATE oldest_living_person.known_birthdates SET tweeted = true WHERE birth_date_epoch = {oldest_person_birthdate_epoch};"
     )
 
 
-def send_tweet_and_email(message):
+def send_tweet(message):
     client = tweepy.Client(
         bearer_token=os.environ["TWITTER_BEARER_TOKEN"],
         consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
@@ -169,30 +170,11 @@ def send_tweet_and_email(message):
         print(f"Tweeted {message}")
     except TweetForbidden:
         print("Tweet forbidden")
-    send_email("New oldest living person", "New oldest living person")
 
 
 def clean_person_name(name):
     # Remove the annotations: Kane Tanaka[3] -> Kane Tanaka
     return re.sub("[\(\[].*?[\)\]]", "", name)
-
-
-def send_email(subject, message):
-    if os.environ.get("EMAIL_TO"):
-        mailgun_domain = os.environ["MAILGUN_DOMAIN"]
-        requests.post(
-            f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
-            auth=("api", os.environ["MAILGUN_API_KEY"]),
-            data={
-                "from": f"Heroku Error <heroku.error@{mailgun_domain}>",
-                "to": [os.environ["EMAIL_TO"]],
-                "subject": subject,
-                "text": message,
-            },
-        )
-        print(f"Emailed {message}")
-    else:
-        print(f"Did not email because no email env set: {message}")
 
 
 def birthdate_str_to_epoch(wikipedia_birthdate_string):
@@ -205,9 +187,4 @@ def birthdate_str_to_epoch(wikipedia_birthdate_string):
     return epoch
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        send_email("Oldest Living Person execution error", e)
-        raise e
+# main({}, {})

@@ -26,6 +26,4 @@ Install [poetry](https://python-poetry.org/docs/#installation)
 
 ## Deployment
 
-I deployed the app on Heroku Free tier. It leverages these free add-ons: [Heroku Scheduler](https://elements.heroku.com/addons/scheduler) (run the check periodically), [Google BigQuery](https://cloud.google.com/bigquery) (remember the birthdates of the oldest living person that we have already seen), and [Mailgun](https://elements.heroku.com/addons/mailgun) (optional -- alert me if something goes wrong, maybe Wikipedia changes its page layoff eventually, etc.). I needed the [python-poetry-buildpack](https://github.com/moneymeets/python-poetry-buildpack.git) set before the standard `heroku/python` buildpack, since I used Poetry for package installs.
-
-I used Google BigQuery to avoid paying for Heroku Postgres. I used this article to help integrate them: https://devdojo.com/bryanborge/adding-google-cloud-credentials-to-heroku. 
+The app used to run on Heroku when it had a free tier, but now it runs as a Google Cloud Function.
