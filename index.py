@@ -14,7 +14,7 @@ from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
 
-EVERY_TEN_MINUTES = 60 / 10
+EVERY_THIRTY_MINUTES = 60 / 30
 SIX_HOURS = 6
 
 
@@ -36,9 +36,7 @@ def main(event, context):
     )
 
     known_birthdates = find_birthdates_from_database()
-    times_seen_threshold = int(
-        os.environ.get("TIMES_SEEN_THRESHOLD", EVERY_TEN_MINUTES * SIX_HOURS)
-    )
+    times_seen_threshold = EVERY_THIRTY_MINUTES * SIX_HOURS
 
     known_birthday_match = None
 
