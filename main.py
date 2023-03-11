@@ -143,7 +143,7 @@ def generate_tweet_message(oldest_person_dict, oldest_person_page_link):
 def add_new_birthdate_to_database(oldest_person_birthdate_epoch):
     print(f"Adding new birthdate to database: {oldest_person_birthdate_epoch}")
     mysql_client.query(
-        f"INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES ({oldest_person_birthdate_epoch}, 1, false);"
+        f"INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES ({oldest_person_birthdate_epoch}, 1, 0);"
     )
 
 
@@ -156,7 +156,7 @@ def increment_birthdate_times_seen(known_birthday_match):
 
 def mark_birthdate_as_tweeted(oldest_person_birthdate_epoch):
     mysql_client.query(
-        f"UPDATE oldest_living_person.known_birthdates SET tweeted = true WHERE birth_date_epoch = {oldest_person_birthdate_epoch};"
+        f"UPDATE oldest_living_person.known_birthdates SET tweeted = 1 WHERE birth_date_epoch = {oldest_person_birthdate_epoch};"
     )
 
 
