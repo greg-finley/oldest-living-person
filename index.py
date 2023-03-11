@@ -3,13 +3,13 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
+import MySQLdb
 import pandas as pd
 import pytz
 import requests
 import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from google.cloud import bigquery
 from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
@@ -22,10 +22,18 @@ SIX_HOURS = 6
 class KnownBirthdate:
     birth_date_epoch: int
     times_seen: int
-    tweeted: bool
+    tweeted: int
 
 
-bigquery_client = bigquery.Client()
+mysql_client = MySQLdb.connect(
+    host=os.getenv("MYSQL_HOST"),
+    user=os.getenv("MYSQL_USERNAME"),
+    passwd=os.getenv("MYSQL_PASSWORD"),
+    db=os.getenv("MYSQL_DATABASE"),
+    ssl_mode="VERIFY_IDENTITY",
+    ssl={"ca": os.environ.get("SSL_CERT_FILE", "/etc/ssl/certs/ca-certificates.crt")},
+)
+mysql_client.autocommit(True)
 
 
 def main(event, context):
@@ -114,15 +122,13 @@ def table_to_oldest_person_dict(oldest_people_table):
 
 
 def find_birthdates_from_database():
-    bigquery_client.query(
-        "CREATE TABLE IF NOT EXISTS oldest_living_person.known_birthdates (birth_date_epoch bigint, times_seen int, tweeted bool);"
+    mysql_client.query(
+        "SELECT birth_date_epoch, times_seen, tweeted FROM known_birthdates;"
     )
-    rows = bigquery_client.query(
-        "SELECT birth_date_epoch, times_seen, tweeted FROM oldest_living_person.known_birthdates;"
-    )
+    r = mysql_client.store_result()
     results = []
-    for row in rows:
-        results.append(KnownBirthdate(*row))
+    for row in r.fetch_row(maxrows=0, how=1):
+        results.append(KnownBirthdate(**row))
     print("Known birthdates", results)
     return results
 
@@ -136,20 +142,20 @@ def generate_tweet_message(oldest_person_dict, oldest_person_page_link):
 
 def add_new_birthdate_to_database(oldest_person_birthdate_epoch):
     print(f"Adding new birthdate to database: {oldest_person_birthdate_epoch}")
-    bigquery_client.query(
+    mysql_client.query(
         f"INSERT INTO oldest_living_person.known_birthdates (birth_date_epoch, times_seen, tweeted) VALUES ({oldest_person_birthdate_epoch}, 1, false);"
     )
 
 
 def increment_birthdate_times_seen(known_birthday_match):
     print(f"Incrementing times seen for {known_birthday_match.birth_date_epoch}")
-    bigquery_client.query(
+    mysql_client.query(
         f"UPDATE oldest_living_person.known_birthdates SET times_seen = coalesce(times_seen, 0) + 1 WHERE birth_date_epoch = {known_birthday_match.birth_date_epoch};"
     )
 
 
 def mark_birthdate_as_tweeted(oldest_person_birthdate_epoch):
-    bigquery_client.query(
+    mysql_client.query(
         f"UPDATE oldest_living_person.known_birthdates SET tweeted = true WHERE birth_date_epoch = {oldest_person_birthdate_epoch};"
     )
 
@@ -185,4 +191,4 @@ def birthdate_str_to_epoch(wikipedia_birthdate_string):
     return epoch
 
 
-# main({}, {})
+main({}, {})
