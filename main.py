@@ -7,10 +7,8 @@ import MySQLdb
 import pandas as pd
 import pytz
 import requests
-import tweepy
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from tweepy.errors import Forbidden as TweetForbidden
 
 load_dotenv()
 
@@ -161,19 +159,8 @@ def mark_birthdate_as_tweeted(oldest_person_birthdate_epoch):
 
 
 def send_tweet(message):
-    client = tweepy.Client(
-        bearer_token=os.environ["TWITTER_BEARER_TOKEN"],
-        consumer_key=os.environ["TWITTER_CONSUMER_KEY"],
-        consumer_secret=os.environ["TWITTER_CONSUMER_SECRET"],
-        access_token=os.environ["TWITTER_ACCESS_TOKEN"],
-        access_token_secret=os.environ["TWITTER_ACCESS_SECRET"],
-    )
-
-    try:
-        client.create_tweet(text=message)
-        print(f"Tweeted {message}")
-    except TweetForbidden:
-        print("Tweet forbidden")
+    """Twitter shut down apps like mine :("""
+    pass
 
 
 def clean_person_name(name):
