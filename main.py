@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -23,11 +24,12 @@ class KnownBirthdate:
     tweeted: int
 
 
+mysql_config = json.loads(os.environ["MYSQL_CONFIG"])
 mysql_client = MySQLdb.connect(
-    host=os.getenv("MYSQL_HOST"),
-    user=os.getenv("MYSQL_USERNAME"),
-    passwd=os.getenv("MYSQL_PASSWORD"),
-    db=os.getenv("MYSQL_DATABASE"),
+    host=mysql_config["MYSQL_HOST"],
+    user=mysql_config["MYSQL_USERNAME"],
+    passwd=mysql_config["MYSQL_PASSWORD"],
+    db=mysql_config["MYSQL_DATABASE"],
     ssl_mode="VERIFY_IDENTITY",
     ssl={"ca": os.environ.get("SSL_CERT_FILE", "/etc/ssl/certs/ca-certificates.crt")},
 )
