@@ -24,6 +24,7 @@ jobs:
           name: "projects/greg-finley/locations/us-central1/functions/check-oldest-living-person"
           runtime: "python311"
           entry_point: "main"
+          source_dir: "oldest"
           memory_mb: 512
           secret_environment_variables: "MYSQL_CONFIG=projects/greg-finley/secrets/MYSQL_CONFIG/versions/latest"
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
