@@ -11,15 +11,15 @@ jobs:
       id-token: "write"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - id: "auth"
-        uses: "google-github-actions/auth@v0"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: "${{ secrets.gcp_credentials }}"
 
       - id: "deploy"
-        uses: "google-github-actions/deploy-cloud-functions@v0"
+        uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
           name: "projects/greg-finley/locations/us-central1/functions/check-oldest-living-person"
           runtime: "python311"
