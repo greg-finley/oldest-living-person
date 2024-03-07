@@ -22,7 +22,7 @@ jobs:
         uses: "google-github-actions/deploy-cloud-functions@v1"
         with:
           name: "projects/greg-finley/locations/us-central1/functions/check-oldest-living-person"
-          runtime: "python312"
+          runtime: "python311"
           entry_point: "main"
           source_dir: "oldest"
           memory_mb: 512
