@@ -14,7 +14,7 @@ lxml = "^4.6.4"
 python-dotenv = "^0.19.2"
 pytz = "^2021.3"
 html5lib = "^1.1"
-mysqlclient = "^2.1.1"
+psycopg = "^3.1.18"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.9.3"
@@ -22,6 +22,9 @@ mypy = "^0.910"
 black = "^21.9b0"
 flake8 = "^4.0.1"
 types-mysqlclient = "^2.1.5.6"
+
+[tool.poetry.group.dev.dependencies]
+sqlglot = "^23.8.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

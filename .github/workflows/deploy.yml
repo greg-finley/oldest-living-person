@@ -26,7 +26,7 @@ jobs:
           entry_point: "main"
           source_dir: "oldest"
           memory_mb: 512
-          secret_environment_variables: "MYSQL_CONFIG=projects/greg-finley/secrets/MYSQL_CONFIG/versions/latest"
+          secret_environment_variables: "NEON_DATABASE_URL=projects/greg-finley/secrets/NEON_DATABASE_URL/versions/latest"
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
           event_trigger_resource: "projects/greg-finley/topics/oldest-living-person"
           event_trigger_service: "pubsub.googleapis.com"
