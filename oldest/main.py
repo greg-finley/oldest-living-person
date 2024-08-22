@@ -26,6 +26,7 @@ class KnownBirthdate:
 
 def main(event, context):
     with psycopg.connect(os.environ["NEON_DATABASE_URL"]) as conn:
+        conn.autocommit = True
         oldest_people_table = scrape_wikipedia_oldest_living_people_table()
         oldest_person_dict = table_to_oldest_person_dict(oldest_people_table)
         oldest_person_birthdate_epoch = birthdate_str_to_epoch(
